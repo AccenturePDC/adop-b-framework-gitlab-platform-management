@@ -82,7 +82,13 @@ ADMIN_USERS=$(echo ${ADMIN_USERS} | tr ',' ' ')
 DEVELOPER_USERS=$(echo ${DEVELOPER_USERS} | tr ',' ' ')
 VIEWER_USERS=$(echo ${VIEWER_USERS} | tr ',' ' ')
 
-# Gitlab				
+# Gitlab
+for user in $ADMIN_USERS $DEVELOPER_USERS $VIEWER_USERS
+do
+		username=$(echo ${user} | cut -d'@' -f1)
+		${WORKSPACE}/common/gitlab/create_user.sh -g http://gitlab/gitlab/ -t "${GITLAB_TOKEN}" -u "${username}" -p "${username}" -e "${user}" 
+done								
+
 # get the namespace id of the group
 gid="$(curl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "http://gitlab/gitlab/api/v3/groups/${WORKSPACE_NAME}" | python -c "import json,sys;obj=json.load(sys.stdin);print obj['id'];")"
 				
