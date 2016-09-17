@@ -107,7 +107,7 @@ echo "# -----------------------------------------------------------------"
 echo "# Create the ansible host file for Openshift Ansible installation"
 echo "# -----------------------------------------------------------------"
 
-export $(cat instances_data.txt)
+source instances_data.env
 
 cat > openshift-hosts <<EOF
 # Create an OSEv3 group that contains the masters and nodes groups
