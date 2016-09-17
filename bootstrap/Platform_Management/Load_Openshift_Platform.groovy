@@ -40,7 +40,7 @@ loadPlatformExtensionJob.with{
             description('AWS access key and secret key for your account')
         }
         credentialsParam("AWS_SSH_CREDENTIALS"){
-            type('com.cloudbees.plugins.credentials.impl.BasicSSHUserPrivateKey')
+            type('com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey')
             description('AWS ssh access credentials to your Openshift EC2 cluster')
         }
     }
