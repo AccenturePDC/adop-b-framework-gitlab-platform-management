@@ -3,7 +3,7 @@ def platformManagementFolderName= "/Platform_Management"
 def platformManagementFolder = folder(platformManagementFolderName) { displayName('Platform Management') }
 
 // Jobs
-def loadPlatformExtensionJob = freeStyleJob(platformManagementFolderName + "/Load_Openshift_Platform_Test")
+def loadPlatformExtensionJob = freeStyleJob(platformManagementFolderName + "/Load_Openshift_Container_Platform")
 
 // Get System variables
 def env = System.getenv()
@@ -25,7 +25,6 @@ loadPlatformExtensionJob.with{
     parameters{
         stringParam("CENTOS_AMI_ID","$amiId","")
         stringParam("AWS_REGION","$awsRegion","")
-        stringParam("AWS_KEY_PAIR","$keyPair","")
         stringParam("AWS_PUBLIC_SUBNET_ID","$publicSubnetId","")
         stringParam("AWS_PRIVATE_SUBNET_ID","$privateSubnetId","")
         stringParam("AWS_VPC_ID","$vpcId","")
@@ -39,9 +38,10 @@ loadPlatformExtensionJob.with{
             type('com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl')
             description('AWS access key and secret key for your account')
         }
+        stringParam("AWS_KEY_PAIR","$keyPair","")
         credentialsParam("AWS_SSH_CREDENTIALS"){
             type('com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey')
-            description('AWS ssh access credentials to your Openshift EC2 cluster')
+            description('AWS ssh access credentials to your Openshift EC2 cluster. This must be the private key content of AWS_KEY_PAIR')
         }
     }
     scm{
@@ -71,6 +71,14 @@ export ANSIBLE_FORCE_COLOR=true
 # Set the EBS device name to be provisioned for Docker Volume group
 DEVICE_NAME=/dev/xvdb
 
+error_handler() {
+  if [ $? -gt 0 ]
+  then
+    ansible-playbook terminate_instances.yml
+    exit 1
+  fi
+}
+
 echo "# -----------------------------------------------------------------"
 echo "# Create Openshift Master EC2"
 echo "# -----------------------------------------------------------------"
@@ -81,12 +89,7 @@ DOCKER_VG_VOLUME_SIZE=40
 SUBNET=${AWS_PUBLIC_SUBNET_ID}
 ansible-playbook provision.yml --extra-vars "instance_name=${MASTER_INSTANCE_NAME} aws_region=${AWS_REGION} key_name=${AWS_KEY_PAIR} vpc_subnet_id=${SUBNET} ami_id=${CENTOS_AMI_ID} instance_type=${MASTERS_INSTANCE_TYPE} volume_size=${ROOT_VOLUME_SIZE} lv_device_name=${DEVICE_NAME} lv_volume_size=${DOCKER_VG_VOLUME_SIZE} vpc_id=${AWS_VPC_ID} volume_device_name='/dev/sda1' env=openshift_cluster vpc_cidr_block=${AWS_VPC_CIDR}"
 
-if [ $? -gt 0 ]
-then
-  ansible-playbook terminate_instances.yml
-  exit 1
-fi
-
+error_handler
 
 echo "# -----------------------------------------------------------------"
 echo "# Create Openshift Minion EC2"
@@ -98,11 +101,7 @@ DOCKER_VG_VOLUME_SIZE=40
 SUBNET=${AWS_PRIVATE_SUBNET_ID}
 ansible-playbook provision.yml --extra-vars "instance_name=${MINION_INSTANCE_NAME} aws_region=${AWS_REGION} key_name=${AWS_KEY_PAIR} vpc_subnet_id=${SUBNET} ami_id=${CENTOS_AMI_ID} instance_type=${MINIONS_INSTANCE_TYPE} volume_size=${ROOT_VOLUME_SIZE} lv_device_name=${DEVICE_NAME} lv_volume_size=${DOCKER_VG_VOLUME_SIZE} vpc_id=${AWS_VPC_ID} volume_device_name='/dev/sda1' env=openshift_cluster vpc_cidr_block=${AWS_VPC_CIDR}"
 
-if [ $? -gt 0 ]
-then
-  ansible-playbook terminate_instances.yml
-  exit 1
-fi
+error_handler
 
 echo "# -----------------------------------------------------------------"
 echo "# Create the ansible host file for Openshift Ansible installation"
