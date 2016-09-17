@@ -157,8 +157,8 @@ echo "# -----------------------------------------------------------------"
 echo "# Create initial cluster-admin user"
 echo "# -----------------------------------------------------------------"
 
-ansible masters -i ../openshift-hosts -m shell -a "htpasswd -b /etc/origin/master/htpasswd ${OPENSHIFT_ADMIN_USER} ${OPENSHIFT_ADMIN_PASSWORD}"
-ansible masters -i ../openshift-hosts -m shell -a "oadm policy add-role-to-user cluster-admin ${OPENSHIFT_ADMIN_USER}"
+ansible masters -i ../openshift-hosts --become --become-user root -u ${REMOTE_SUDO_USER} -m shell -a "htpasswd -b /etc/origin/master/htpasswd ${OPENSHIFT_ADMIN_USER} ${OPENSHIFT_ADMIN_PASSWORD}"
+ansible masters -i ../openshift-hosts --become --become-user root -u ${REMOTE_SUDO_USER} -m shell -a "oadm policy add-role-to-user cluster-admin ${OPENSHIFT_ADMIN_USER}"
 
 ''')
     }
