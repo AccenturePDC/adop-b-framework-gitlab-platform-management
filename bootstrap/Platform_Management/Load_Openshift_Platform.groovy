@@ -3,7 +3,7 @@ def platformManagementFolderName= "/Platform_Management"
 def platformManagementFolder = folder(platformManagementFolderName) { displayName('Platform Management') }
 
 // Jobs
-def loadPlatformExtensionJob = freeStyleJob(platformManagementFolderName + "/Load_Openshift_Container_Platform")
+def loadPlatformExtensionJob = freeStyleJob(platformManagementFolderName + "/Load_AWS_Openshift_Container_Platform")
 
 // Get System variables
 def env = System.getenv()
