@@ -68,16 +68,18 @@ loadPlatformExtensionJob.with{
 
 export ANSIBLE_FORCE_COLOR=true
 
+# Set the EBS device name to be provisioned for Docker Volume group
+DEVICE_NAME=/dev/xvdb
+
 echo "# -----------------------------------------------------------------"
 echo "# Create Openshift Master EC2"
 echo "# -----------------------------------------------------------------"
 
 export MASTER_INSTANCE_NAME=Openshift_Master_Node
 ROOT_VOLUME_SIZE=20
-DOCKER_VOLUME_SIZE=20
+DOCKER_VG_VOLUME_SIZE=40
 SUBNET=${AWS_PUBLIC_SUBNET_ID}
-
-ansible-playbook provision.yml --extra-vars "instance_name=${MASTER_INSTANCE_NAME} aws_region=${AWS_REGION} key_name=${AWS_KEY_PAIR} vpc_subnet_id=${SUBNET} ami_id=${CENTOS_AMI_ID} instance_type=${MASTERS_INSTANCE_TYPE} volume_size=${ROOT_VOLUME_SIZE} lv_volume_size=${DOCKER_VG_VOLUME_SIZE} vpc_id=${AWS_VPC_ID} volume_device_name='/dev/sda1' env=openshift_cluster vpc_cidr_block=${AWS_VPC_CIDR}"
+ansible-playbook provision.yml --extra-vars "instance_name=${MASTER_INSTANCE_NAME} aws_region=${AWS_REGION} key_name=${AWS_KEY_PAIR} vpc_subnet_id=${SUBNET} ami_id=${CENTOS_AMI_ID} instance_type=${MASTERS_INSTANCE_TYPE} volume_size=${ROOT_VOLUME_SIZE} lv_device_name=${DEVICE_NAME} lv_volume_size=${DOCKER_VG_VOLUME_SIZE} vpc_id=${AWS_VPC_ID} volume_device_name='/dev/sda1' env=openshift_cluster vpc_cidr_block=${AWS_VPC_CIDR}"
 
 if [ $? -gt 0 ]
 then
@@ -92,10 +94,9 @@ echo "# -----------------------------------------------------------------"
 
 export MINION_INSTANCE_NAME=Openshift_Minion_Node
 ROOT_VOLUME_SIZE=20
-DOCKER_VOLUME_SIZE=40
+DOCKER_VG_VOLUME_SIZE=40
 SUBNET=${AWS_PRIVATE_SUBNET_ID}
-
-ansible-playbook provision.yml --extra-vars "instance_name=${MINION_INSTANCE_NAME} aws_region=${AWS_REGION} key_name=${AWS_KEY_PAIR} vpc_subnet_id=${SUBNET} ami_id=${CENTOS_AMI_ID} instance_type=${MINIONS_INSTANCE_TYPE} volume_size=${ROOT_VOLUME_SIZE} lv_volume_size=${DOCKER_VG_VOLUME_SIZE} vpc_id=${AWS_VPC_ID} volume_device_name='/dev/sda1' env=openshift_cluster vpc_cidr_block=${AWS_VPC_CIDR}"
+ansible-playbook provision.yml --extra-vars "instance_name=${MINION_INSTANCE_NAME} aws_region=${AWS_REGION} key_name=${AWS_KEY_PAIR} vpc_subnet_id=${SUBNET} ami_id=${CENTOS_AMI_ID} instance_type=${MINIONS_INSTANCE_TYPE} volume_size=${ROOT_VOLUME_SIZE} lv_device_name=${DEVICE_NAME} lv_volume_size=${DOCKER_VG_VOLUME_SIZE} vpc_id=${AWS_VPC_ID} volume_device_name='/dev/sda1' env=openshift_cluster vpc_cidr_block=${AWS_VPC_CIDR}"
 
 if [ $? -gt 0 ]
 then
@@ -125,6 +126,7 @@ deployment_type=origin
 openshift_master_identity_providers=[{'name': 'htpasswd_auth', 'login': 'true', 'challenge': 'true', 'kind': 'HTPasswdPasswordIdentityProvider', 'filename': '/etc/origin/master/htpasswd'}]
 # Use something like apps.<public-ip>.xip.io if you don't have a custom domain
 openshift_master_default_subdomain=apps.${Openshift_Master_Node_PUBLIC_IP}.xip.io
+
 [masters]
 ${Openshift_Master_Node_PUBLIC_HOSTNAME}
 [nodes]
@@ -140,7 +142,7 @@ echo "# -----------------------------------------------------------------"
 
 git clone https://github.com/AccenturePDC/ansible-openshift-roles.git
 cd ansible-openshift-roles
-ansible-playbook -i ../openshift-hosts install_req.yml -e "device_name=${DEVICE_NAME}"
+ansible-playbook -i ../openshift-hosts site.yml -e "device_name=${DEVICE_NAME}"
 
 echo "# -----------------------------------------------------------------"
 echo "# Install Openshift Cluster"
