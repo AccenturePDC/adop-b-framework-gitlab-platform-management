@@ -39,14 +39,17 @@ loadPlatformExtensionJob.with{
             type('com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl')
             description('AWS access key and secret key for your account')
         }
+        credentialsParam("AWS_SSH_CREDENTIALS"){
+            type('com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl')
+            description('AWS ssh access credentials to your Openshift EC2 cluster')
+        }
     }
     scm{
         git{
             remote{
-                url('${GIT_URL}')
-                credentials("adop-jenkins-master")
+                url('https://github.com/AccenturePDC/ansible-ec2-create')
             }
-            branch('${GIT_REF}')
+            branch('*/master')
         }
     }
     label("aws")
@@ -54,7 +57,7 @@ loadPlatformExtensionJob.with{
         preBuildCleanup()
         injectPasswords()
         maskPasswords()
-        sshAgent("adop-jenkins-master")
+        sshAgent('${AWS_SSH_CREDENTIALS}')
         credentialsBinding {
             usernamePassword("EC2_ACCESS_KEY", "EC2_SECRET_KEY", '${AWS_CREDENTIALS}')
         }
