@@ -1,5 +1,5 @@
 // Constants
-def platformToolsGitURL = "ssh://jenkins@gerrit:29418/platform-management"
+def platformToolsGitURL = "git@${GITLAB_HOST_NAME}:root/platform-management.git"
 
 // Folders
 def workspaceFolderName = "${WORKSPACE_NAME}"
@@ -32,6 +32,8 @@ generateProjectJob.with{
             env('OU_GROUPS','ou=groups')
             env('OU_PEOPLE','ou=people')
             env('OUTPUT_FILE','output.ldif')
+            env('GITLAB_HTTP_URL',GITLAB_HTTP_URL)
+            env('GITLAB_HOST_NAME',GITLAB_HOST_NAME)
         }
         credentialsBinding {
             usernamePassword("LDAP_ADMIN_USER", "LDAP_ADMIN_PASSWORD", "adop-ldap-admin")
@@ -45,13 +47,13 @@ generateProjectJob.with{
 		}
 	}
 	scm {
-				git {
-						remote {
-								url('git@gitlab:root/platform-management.git')
-								credentials("adop-jenkins-master")
-						}	
-						branch('*/master')
-				}
+        git {
+            remote {
+                    url(platformToolsGitURL)
+                    credentials("adop-jenkins-master")
+            }	
+            branch('*/master')
+        }
 	}
     steps {
         shell('''#!/bin/bash -e
@@ -86,40 +88,40 @@ VIEWER_USERS=$(echo ${VIEWER_USERS} | tr ',' ' ')
 for user in $ADMIN_USERS $DEVELOPER_USERS $VIEWER_USERS
 do
 		username=$(echo ${user} | cut -d'@' -f1)
-		${WORKSPACE}/common/gitlab/create_user.sh -g http://gitlab/gitlab/ -t "${GITLAB_TOKEN}" -u "${username}" -p "${username}" -e "${user}" 
+		${WORKSPACE}/common/gitlab/create_user.sh -g ${GITLAB_HTTP_URL}/ -t "${GITLAB_TOKEN}" -u "${username}" -p "${username}" -e "${user}" 
 done								
 
 # get the namespace id of the group
-gid="$(curl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "http://gitlab/gitlab/api/v3/groups/${WORKSPACE_NAME}" | python -c "import json,sys;obj=json.load(sys.stdin);print obj['id'];")"
+gid="$(curl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "${GITLAB_HTTP_URL}/api/v3/groups/${WORKSPACE_NAME}" | python -c "import json,sys;obj=json.load(sys.stdin);print obj['id'];")"
 				
 # create new project				
-${WORKSPACE}/common/gitlab/create_project.sh -g http://gitlab/gitlab/ -t "${GITLAB_TOKEN}" -w "${gid}" -p "${PROJECT_NAME}"
+${WORKSPACE}/common/gitlab/create_project.sh -g ${GITLAB_HTTP_URL}/ -t "${GITLAB_TOKEN}" -w "${gid}" -p "${PROJECT_NAME}"
 				
 # get project id
-pid="$(curl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "http://gitlab/gitlab/api/v3/projects/${WORKSPACE_NAME}%2F${PROJECT_NAME}" | python -c "import json,sys;obj=json.load(sys.stdin);print obj['id'];")"
+pid="$(curl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "${GITLAB_HTTP_URL}/api/v3/projects/${WORKSPACE_NAME}%2F${PROJECT_NAME}" | python -c "import json,sys;obj=json.load(sys.stdin);print obj['id'];")"
 				
 # add the users to the project as owners
 for owner in $ADMIN_USERS
 do
 		ownername=$(echo ${owner} | cut -d'@' -f1)
-		uid="$(curl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "http://gitlab/gitlab/api/v3/users?username=${ownername}" | python -c "import json,sys;obj=json.load(sys.stdin);print obj[0]['id'];")"
-		${WORKSPACE}/projects/gitlab/add_user_to_project.sh -g http://gitlab/gitlab/ -t $GITLAB_TOKEN -p $pid -u $uid -a 50
+		uid="$(curl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "${GITLAB_HTTP_URL}/api/v3/users?username=${ownername}" | python -c "import json,sys;obj=json.load(sys.stdin);print obj[0]['id'];")"
+		${WORKSPACE}/projects/gitlab/add_user_to_project.sh -g ${GITLAB_HTTP_URL}/ -t $GITLAB_TOKEN -p $pid -u $uid -a 50
 done
 				
 # add the users to the project as developers
 for developer in $DEVELOPER_USERS
 do
 		developername=$(echo ${developer} | cut -d'@' -f1)
-		uid="$(curl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "http://gitlab/gitlab/api/v3/users?username=${developername}" | python -c "import json,sys;obj=json.load(sys.stdin);print obj[0]['id'];")"
-		${WORKSPACE}/projects/gitlab/add_user_to_project.sh -g http://gitlab/gitlab/ -t $GITLAB_TOKEN -p $pid -u $uid -a 30
+		uid="$(curl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "${GITLAB_HTTP_URL}/api/v3/users?username=${developername}" | python -c "import json,sys;obj=json.load(sys.stdin);print obj[0]['id'];")"
+		${WORKSPACE}/projects/gitlab/add_user_to_project.sh -g ${GITLAB_HTTP_URL}/ -t $GITLAB_TOKEN -p $pid -u $uid -a 30
 done
 				
 # add the users to the project as guests
 for guest in $VIEWER_USERS
 do
 		guestname=$(echo ${guest} | cut -d'@' -f1)
-		uid="$(curl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "http://gitlab/gitlab/api/v3/users?username=${guestname}" | python -c "import json,sys;obj=json.load(sys.stdin);print obj[0]['id'];")"
-		${WORKSPACE}/projects/gitlab/add_user_to_project.sh -g http://gitlab/gitlab/ -t $GITLAB_TOKEN -p $pid -u $uid -a 10
+		uid="$(curl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "${GITLAB_HTTP_URL}/api/v3/users?username=${guestname}" | python -c "import json,sys;obj=json.load(sys.stdin);print obj[0]['id'];")"
+		${WORKSPACE}/projects/gitlab/add_user_to_project.sh -g ${GITLAB_HTTP_URL}/ -t $GITLAB_TOKEN -p $pid -u $uid -a 10
 done''')
         dsl {
             external("projects/jobs/**/*.groovy")

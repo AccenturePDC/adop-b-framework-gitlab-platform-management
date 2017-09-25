@@ -3,7 +3,7 @@ def platformManagementFolderName= "/Platform_Management"
 def platformManagementFolder = folder(platformManagementFolderName) { displayName('Platform Management') }
 
 // Jobs
-def loadPlatformExtensionCollectionJob = workflowJob(platformManagementFolderName + "/Load_Platform_Extension_Collection")
+def loadPlatformExtensionCollectionJob = pipelineJob(platformManagementFolderName + "/Load_Platform_Extension_Collection")
 
 
 // Setup Load_Cartridge Collection

@@ -1,7 +1,8 @@
 // Constants
-def gerritBaseUrl = "ssh://jenkins@gerrit:29418"
-def cartridgeBaseUrl = gerritBaseUrl + "/cartridges"
-def platformToolsGitUrl = gerritBaseUrl + "/platform-management"
+// def gerritBaseUrl = "ssh://jenkins@gerrit:29418"
+// def cartridgeBaseUrl = gerritBaseUrl + "/cartridges"
+// def platformToolsGitUrl = gerritBaseUrl + "/platform-management"
+def platformToolsGitURL = "git@${GITLAB_HOST_NAME}:root/platform-management.git"
 
 // Folders
 def workspaceFolderName = "${WORKSPACE_NAME}"
@@ -32,6 +33,8 @@ loadCartridgeJob.with{
     environmentVariables {
         env('WORKSPACE_NAME',workspaceFolderName)
         env('PROJECT_NAME',projectFolderName)
+        env('GITLAB_HTTP_URL',GITLAB_HTTP_URL)
+        env('GITLAB_HOST_NAME',GITLAB_HOST_NAME)
     }
     wrappers {
         preBuildCleanup()
@@ -71,10 +74,10 @@ while read repo_url; do
         target_repo_name="${WORKSPACE_NAME}/${repo_name}"
         
         # get the namespace id of the group
-		gid="$(curl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "http://gitlab/gitlab/api/v3/groups/${WORKSPACE_NAME}" | python -c "import json,sys;obj=json.load(sys.stdin);print obj['id'];")"
+		gid="$(curl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "${GITLAB_HTTP_URL}/api/v3/groups/${WORKSPACE_NAME}" | python -c "import json,sys;obj=json.load(sys.stdin);print obj['id'];")"
 				
 		# create new project				
-		${WORKSPACE}/common/gitlab/create_project.sh -g http://gitlab/gitlab/ -t "${GITLAB_TOKEN}" -w "${gid}" -p "${repo_name}"	
+		${WORKSPACE}/common/gitlab/create_project.sh -g ${GITLAB_HTTP_URL}/ -t "${GITLAB_TOKEN}" -w "${gid}" -p "${repo_name}"	
         
         # Populate repository
         git clone git@gitlab:"${target_repo_name}.git"
@@ -139,7 +142,7 @@ fileList.each {
         git {
             remote {
                 name("origin")
-                url("git@gitlab:root/platform-management.git")
+                url(platformToolsGitURL)
                 credentials("adop-jenkins-master")
             }
             branch("*/master")
